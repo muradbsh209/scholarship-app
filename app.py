@@ -13,7 +13,7 @@ app.config["SECRET_KEY"] = "your-secret-key-change-in-production"
 db = SQLAlchemy(app)
 
 # Admin username
-ADMIN_USERNAME = "BHOSITRM2025"
+ADMIN_USERNAME = "Root@Sudo;Verba"
 
 # Ixtisas qrupları
 qrup_1_RI = [250104, 250108, 250107, 250103, 250110]  # English, ADIAK, ICT
