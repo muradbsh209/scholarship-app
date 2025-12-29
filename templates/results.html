@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>📊 Təqaüd Nəticələri</h2>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ scholarship_students|length }}</h3>
+        <p>Təqaüd Alan Tələbə</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ students|length - scholarship_students|length }}</h3>
+        <p>Təqaüd Almayan Tələbə</p>
+    </div>
+</div>
+
+{% for ixtisas_id, ixtisas_students in students_by_ixtisas.items() %}
+<div style="margin-bottom: 40px;">
+    <h2>{{ ixtisas_id }} - {{ ixtisas_plans[ixtisas_id].name }}</h2>
+    <p><strong>Plan:</strong> {{ ixtisas_plans[ixtisas_id].free }} pulsuz, {{ ixtisas_plans[ixtisas_id].payable }} ödənişli | 
+       <strong>Ümumi Tələbə:</strong> {{ ixtisas_students|length }}</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Yer</th>
+                <th>Ad</th>
+                <th>Soyad</th>
+                <th>İngilis (bal / qiymət)</th>
+                {% if ixtisas_id in [250104, 250108, 250107, 250103, 250110] %}
+                <th>ADIAK (bal / qiymət)</th>
+                {% else %}
+                <th>Tarix (bal / qiymət)</th>
+                {% endif %}
+                <th>ICT (bal / qiymət)</th>
+                <th>Orta Bal</th>
+                <th>Təqaüd Növü</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in ixtisas_students %}
+            <tr {% if student.cancelled %}class="no-scholarship"{% elif student.scholarship_type %}class="scholarship-{{ 'ela' if 'Əlaçı' in student.scholarship_type else 'zerbe' if 'Zərbəçi' in student.scholarship_type else 'adi' if 'Adi' in student.scholarship_type else '' }}"{% endif %}>
+                <td>{{ student.rank }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.surname }}</td>
+                <td>{{ "%.2f"|format(student.english_point) }} ({{ student.english_grade }})</td>
+                {% if ixtisas_id in [250104, 250108, 250107, 250103, 250110] %}
+                <td>{{ "%.2f"|format(student.adiak_point) }} ({{ student.adiak_grade }})</td>
+                {% else %}
+                <td>{{ "%.2f"|format(student.history_point) }} ({{ student.history_grade }})</td>
+                {% endif %}
+                <td>{{ "%.2f"|format(student.ict_point) }} ({{ student.ict_grade }})</td>
+                <td><strong>{{ "%.2f"|format(student.average_score) }}</strong></td>
+                <td>
+                    {% if student.scholarship_type %}
+                        <strong>{{ student.scholarship_type }}</strong>
+                    {% else %}
+                        <span class="no-scholarship">Təqaüd yoxdur</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if student.cancelled %}
+                        Resit (ləğv olunub)
+                    {% else %}
+                        Normal
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endfor %}
+
+<div style="margin-top: 30px;">
+    <h2>🎯 Yalnız Təqaüd Alan Tələbələr</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>İxtisas</th>
+                <th>Ad</th>
+                <th>Soyad</th>
+                <th>Orta Bal</th>
+                <th>Qiymətlər (İng / 2-ci / ICT)</th>
+                <th>Təqaüd Növü</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in scholarship_students|sort(attribute='average_score', reverse=True) if not student.cancelled %}
+            <tr class="scholarship-{{ 'ela' if 'Əlaçı' in student.scholarship_type else 'zerbe' if 'Zərbəçi' in student.scholarship_type else 'adi' if 'Adi' in student.scholarship_type else '' }}">
+                <td>{{ student.ixtisas_id }} - {{ student.ixtisas_name }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.surname }}</td>
+                <td><strong>{{ "%.2f"|format(student.average_score) }}</strong></td>
+                <td>
+                    {{ student.english_grade }} /
+                    {% if student.adiak_grade %}
+                        {{ student.adiak_grade }}
+                    {% else %}
+                        {{ student.history_grade }}
+                    {% endif %}
+                    / {{ student.ict_grade }}
+                </td>
+                <td><strong>{{ student.scholarship_type }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

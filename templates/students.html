@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>📋 Bütün Tələbələr</h2>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ students|length }}</h3>
+        <p>Ümumi Tələbə Sayı</p>
+    </div>
+</div>
+
+{% if students|length > 0 %}
+<table>
+    <thead>
+        <tr>
+            <th>İxtisas ID</th>
+            <th>Ad</th>
+            <th>Soyad</th>
+            <th>İngilis (bal / qiymət)</th>
+            <th>ADIAK (bal / qiymət)</th>
+            <th>Tarix (bal / qiymət)</th>
+            <th>ICT (bal / qiymət)</th>
+            <th>Orta Bal</th>
+            <th>Status</th>
+            <th>Əməliyyat</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.ixtisas_id }} - {{ ixtisas_plans[student.ixtisas_id].name }}</td>
+            <td>{{ student.name }}</td>
+            <td>{{ student.surname }}</td>
+            <td>{{ "%.2f"|format(student.english_point) }} ({{ student.english_grade }})</td>
+            <td>
+                {% if student.adiak_point > 0 %}
+                    {{ "%.2f"|format(student.adiak_point) }} ({{ student.adiak_grade }})
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if student.history_point > 0 %}
+                    {{ "%.2f"|format(student.history_point) }} ({{ student.history_grade }})
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>{{ "%.2f"|format(student.ict_point) }} ({{ student.ict_grade }})</td>
+            <td><strong>{{ "%.2f"|format(student.average_score) }}</strong></td>
+            <td>
+                {% if student.cancelled %}
+                    Resit (ləğv olunub)
+                {% else %}
+                    Normal
+                {% endif %}
+            </td>
+            <td>
+                <form method="POST" action="{{ url_for('remove_student', student_id=student.id) }}" style="display: inline;">
+                    <button type="submit" class="btn-danger" onclick="return confirm('Bu tələbəni silmək istədiyinizə əminsiniz?')" style="padding: 6px 12px; font-size: 14px;">Sil</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('calculate') }}">
+    <button style="margin-top: 20px;">Təqaüdləri Hesabla</button>
+</a>
+{% else %}
+<div class="alert alert-info">
+    Hələ heç bir tələbə əlavə edilməyib. <a href="{{ url_for('index') }}">Buradan əlavə edin</a>.
+</div>
+{% endif %}
+{% endblock %}
+

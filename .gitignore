@@ -1,0 +1,17 @@
+# Python sanal ortam klasörü (Bunu arkadaşın kendi oluşturmalı)
+venv/
+env/
+.venv/
+
+# Python'un çalışma sırasında ürettiği geçici dosyalar
+__pycache__/
+*.pyc
+
+# Cursor ve VS Code özel ayarları
+.vscode/
+.cursor/
+.cursorrules
+
+# İşletim sistemi dosyaları
+.DS_Store
+Thumbs.db

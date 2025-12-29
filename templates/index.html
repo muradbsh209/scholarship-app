@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Tələbə Əlavə Et</h2>
+
+<div class="alert alert-info">
+    <strong>Qeyd:</strong> Hər tələbə üçün 3 fənnin balını daxil edin. Hansı fənlərin lazım olduğu ixtisas ID-sindən asılıdır.
+</div>
+
+<form method="POST" action="{{ url_for('add_student') }}">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="ixtisas_id">İxtisas ID *</label>
+            <select name="ixtisas_id" id="ixtisas_id" required onchange="updateSubjectFields()">
+                <option value="">Seçin...</option>
+                {% for ixtisas_id, plan in ixtisas_plans.items() %}
+                <option value="{{ ixtisas_id }}">{{ ixtisas_id }} - {{ plan.name }} ({{ plan.free }} pulsuz, {{ plan.payable }} ödənişli)</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="name">Ad *</label>
+            <input type="text" name="name" id="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="surname">Soyad *</label>
+            <input type="text" name="surname" id="surname" required>
+        </div>
+    </div>
+    
+    <h3>İngilis Dili Komponentləri</h3>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="eng_assessment">Assessment Test (0-100)</label>
+            <input type="number" name="eng_assessment" id="eng_assessment" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="eng_writing">Graded Writing (0-100)</label>
+            <input type="number" name="eng_writing" id="eng_writing" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="eng_p1">1-ci Presentation (0-100)</label>
+            <input type="number" name="eng_p1" id="eng_p1" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="eng_p2">2-ci Presentation (0-100)</label>
+            <input type="number" name="eng_p2" id="eng_p2" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="eng_p3">3-cü Presentation (0-100)</label>
+            <input type="number" name="eng_p3" id="eng_p3" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="eng_participation">Participation (0-100)</label>
+            <input type="number" name="eng_participation" id="eng_participation" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="eng_midterm">Midterm (0-100)</label>
+            <input type="number" name="eng_midterm" id="eng_midterm" step="0.01" min="0" max="100" required>
+        </div>
+    </div>
+
+    <h3>ICT Komponentləri</h3>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="ict_quiz">Quiz (0-100)</label>
+            <input type="number" name="ict_quiz" id="ict_quiz" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="ict_lab">Laboratoriya (0-100)</label>
+            <input type="number" name="ict_lab" id="ict_lab" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="ict_presentation">Prezentasiya (0-100)</label>
+            <input type="number" name="ict_presentation" id="ict_presentation" step="0.01" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="ict_exam">İKT imtahanı (0-100)</label>
+            <input type="number" name="ict_exam" id="ict_exam" step="0.01" min="0" max="100" required>
+        </div>
+    </div>
+
+    <h3>ADIAK / Tarix Komponentləri</h3>
+    <div class="form-row">
+        <div class="form-group" id="adiak_group" style="display: none;">
+            <label for="adiak_presentation">ADIAK Presentation (0-100)</label>
+            <input type="number" name="adiak_presentation" id="adiak_presentation" step="0.01" min="0" max="100" value="0">
+            <label for="adiak_participation">ADIAK Participation (0-100)</label>
+            <input type="number" name="adiak_participation" id="adiak_participation" step="0.01" min="0" max="100" value="0">
+            <label for="adiak_midterm">ADIAK Midterm (0-100)</label>
+            <input type="number" name="adiak_midterm" id="adiak_midterm" step="0.01" min="0" max="100" value="0">
+            <label for="adiak_final">ADIAK Final (0-100)</label>
+            <input type="number" name="adiak_final" id="adiak_final" step="0.01" min="0" max="100" value="0">
+        </div>
+        
+        <div class="form-group" id="history_group" style="display: none;">
+            <label for="history_seminar">Seminar (0-100)</label>
+            <input type="number" name="history_seminar" id="history_seminar" step="0.01" min="0" max="100" value="0">
+            <label for="history_interactive">İnteraktiv mühazirə (0-100)</label>
+            <input type="number" name="history_interactive" id="history_interactive" step="0.01" min="0" max="100" value="0">
+            <label for="history_presentation">Təqdimat (0-100)</label>
+            <input type="number" name="history_presentation" id="history_presentation" step="0.01" min="0" max="100" value="0">
+            <label for="history_midterm">Midterm (0-100)</label>
+            <input type="number" name="history_midterm" id="history_midterm" step="0.01" min="0" max="100" value="0">
+            <label for="history_final">Final (0-100)</label>
+            <input type="number" name="history_final" id="history_final" step="0.01" min="0" max="100" value="0">
+        </div>
+    </div>
+    
+    <button type="submit">Tələbə Əlavə Et</button>
+</form>
+
+<div style="margin-top: 30px;">
+    <h2>Statistika</h2>
+    <div class="stats">
+        <div class="stat-card">
+            <h3>{{ students|length }}</h3>
+            <p>Ümumi Tələbə</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ ixtisas_plans|length }}</h3>
+            <p>İxtisas Sayı</p>
+        </div>
+    </div>
+</div>
+
+{% if students|length > 0 %}
+<div style="margin-top: 30px;">
+    <form method="POST" action="{{ url_for('clear_students') }}" style="display: inline;">
+        <button type="submit" class="btn-danger" onclick="return confirm('Bütün tələbələri silmək istədiyinizə əminsiniz?')">Bütün Tələbələri Sil</button>
+    </form>
+    <a href="{{ url_for('calculate') }}">
+        <button>Təqaüdləri Hesabla</button>
+    </a>
+</div>
+{% endif %}
+
+<script>
+function updateSubjectFields() {
+    const ixtisasId = document.getElementById('ixtisas_id').value;
+    const adiakGroup = document.getElementById('adiak_group');
+    const historyGroup = document.getElementById('history_group');
+    const adiakPresentation = document.getElementById('adiak_presentation');
+    const adiakParticipation = document.getElementById('adiak_participation');
+    const adiakMidterm = document.getElementById('adiak_midterm');
+    const adiakFinal = document.getElementById('adiak_final');
+    const historySeminar = document.getElementById('history_seminar');
+    const historyInteractive = document.getElementById('history_interactive');
+    const historyPresentation = document.getElementById('history_presentation');
+    const historyMidterm = document.getElementById('history_midterm');
+    const historyFinal = document.getElementById('history_final');
+    
+    // Reset values
+    adiakPresentation.value = 0;
+    adiakParticipation.value = 0;
+    adiakMidterm.value = 0;
+    adiakFinal.value = 0;
+    historySeminar.value = 0;
+    historyInteractive.value = 0;
+    historyPresentation.value = 0;
+    historyMidterm.value = 0;
+    historyFinal.value = 0;
+    
+    // Group 1 RI: 250104, 250108, 250107, 250103, 250110 (ADIAK)
+    const group1RI = ['250104', '250108', '250107', '250103', '250110'];
+    // Group 1 RK: 250101, 250102 (History)
+    const group1RK = ['250101', '250102'];
+    // Group 2: 250109, 250111 (History)
+    const group2 = ['250109', '250111'];
+    
+    if (group1RI.includes(ixtisasId)) {
+        adiakGroup.style.display = 'block';
+        historyGroup.style.display = 'none';
+        adiakPresentation.required = true;
+        adiakParticipation.required = true;
+        adiakMidterm.required = true;
+        adiakFinal.required = true;
+        historySeminar.required = false;
+        historyInteractive.required = false;
+        historyPresentation.required = false;
+        historyMidterm.required = false;
+        historyFinal.required = false;
+    } else if (group1RK.includes(ixtisasId) || group2.includes(ixtisasId)) {
+        adiakGroup.style.display = 'none';
+        historyGroup.style.display = 'block';
+        adiakPresentation.required = false;
+        adiakParticipation.required = false;
+        adiakMidterm.required = false;
+        adiakFinal.required = false;
+        historySeminar.required = true;
+        historyInteractive.required = true;
+        historyPresentation.required = true;
+        historyMidterm.required = true;
+        historyFinal.required = true;
+    } else {
+        adiakGroup.style.display = 'none';
+        historyGroup.style.display = 'none';
+        adiakPresentation.required = false;
+        adiakParticipation.required = false;
+        adiakMidterm.required = false;
+        adiakFinal.required = false;
+        historySeminar.required = false;
+        historyInteractive.required = false;
+        historyPresentation.required = false;
+        historyMidterm.required = false;
+        historyFinal.required = false;
+    }
+}
+</script>
+{% endblock %}
+
