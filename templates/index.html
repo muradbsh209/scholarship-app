@@ -7,6 +7,37 @@
     <strong>Qeyd:</strong> Hər tələbə üçün 3 fənnin balını daxil edin. Hansı fənlərin lazım olduğu ixtisas ID-sindən asılıdır.
 </div>
 
+<!-- CSV Upload Section -->
+<div style="margin-bottom: 30px; padding: 20px; border: 2px dashed #ccc; border-radius: 5px; background-color: #f9f9f9;">
+    <h3>CSV Faylı ilə Toplu Yükləmə</h3>
+    <p style="margin-bottom: 15px;">CSV faylı yükləyərək bir neçə tələbəni bir dəfədə əlavə edə bilərsiniz. Sistem sütunları avtomatik olaraq identifikasiya edəcək.</p>
+    
+    <form method="POST" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data" id="csvUploadForm">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="file" name="csv_file" id="csv_file" accept=".csv" required style="padding: 8px;">
+            <button type="submit" style="padding: 8px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                CSV Yüklə
+            </button>
+        </div>
+    </form>
+    
+    <div style="margin-top: 15px; font-size: 0.9em; color: #666;">
+        <strong>CSV faylında olmalı sütunlar:</strong>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+            <li><strong>Lazımi:</strong> ixtisas_id (və ya ixtisas), name (və ya ad), surname (və ya soyad)</li>
+            <li><strong>İngilis dili:</strong> eng_assessment, eng_writing, eng_p1, eng_p2, eng_p3, eng_participation, eng_midterm</li>
+            <li><strong>ICT:</strong> ict_quiz, ict_lab, ict_presentation, ict_exam</li>
+            <li><strong>ADIAK (qrup 1 RI üçün):</strong> adiak_presentation, adiak_participation, adiak_midterm, adiak_final</li>
+            <li><strong>Tarix (qrup 1 RK və qrup 2 üçün):</strong> history_seminar, history_interactive, history_presentation, history_midterm, history_final</li>
+        </ul>
+        <p><em>Qeyd: Sütun adları müxtəlif variantlarda ola bilər (məsələn: "İngilis dili assessment", "English Assessment", "eng assessment" və s.)</em></p>
+    </div>
+</div>
+
+<hr style="margin: 30px 0;">
+
+<h3>Və ya Tək Tələbə Əlavə Et</h3>
+
 <form method="POST" action="{{ url_for('add_student') }}">
     <div class="form-row">
         <div class="form-group">

@@ -1,6 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
+import csv
+import io
+import re
 from adiak_score import calculate_adiak_from_components
 from english_score import calculate_english_from_components
 from ict_score import calculate_ict_from_components
@@ -400,6 +403,218 @@ def remove_student(student_id):
     db.session.delete(student)
     db.session.commit()
     return redirect(url_for('view_students'))
+
+
+def identify_csv_columns(headers):
+    """CSV sütunlarını avtomatik olaraq identifikasiya edir"""
+    column_map = {}
+    
+    # Normalize headers (lowercase, strip whitespace)
+    normalized_headers = {i: h.strip().lower() for i, h in enumerate(headers)}
+    
+    # Column name patterns for identification
+    patterns = {
+        'ixtisas_id': ['ixtisas', 'ixtisas_id', 'ixtisasid', 'specialty', 'specialty_id', 'specialtyid', 'id'],
+        'name': ['name', 'ad', 'firstname', 'first_name', 'first name'],
+        'surname': ['surname', 'soyad', 'lastname', 'last_name', 'last name', 'family name'],
+        'eng_assessment': ['eng_assessment', 'english assessment', 'assessment', 'eng assessment', 'english_assessment'],
+        'eng_writing': ['eng_writing', 'english writing', 'writing', 'eng writing', 'english_writing', 'graded writing'],
+        'eng_p1': ['eng_p1', 'english p1', 'p1', 'presentation 1', 'presentation1', 'eng presentation 1'],
+        'eng_p2': ['eng_p2', 'english p2', 'p2', 'presentation 2', 'presentation2', 'eng presentation 2'],
+        'eng_p3': ['eng_p3', 'english p3', 'p3', 'presentation 3', 'presentation3', 'eng presentation 3'],
+        'eng_participation': ['eng_participation', 'english participation', 'participation', 'eng participation'],
+        'eng_midterm': ['eng_midterm', 'english midterm', 'midterm', 'eng midterm', 'english_midterm'],
+        'ict_quiz': ['ict_quiz', 'ict quiz', 'quiz', 'ikt quiz'],
+        'ict_lab': ['ict_lab', 'ict lab', 'lab', 'laboratory', 'laboratoriya', 'ikt lab'],
+        'ict_presentation': ['ict_presentation', 'ict presentation', 'ict prez', 'ikt presentation', 'ikt prez'],
+        'ict_exam': ['ict_exam', 'ict exam', 'ict imtahan', 'ikt exam', 'ikt imtahan'],
+        'adiak_presentation': ['adiak_presentation', 'adiak presentation', 'adiak prez'],
+        'adiak_participation': ['adiak_participation', 'adiak participation', 'adiak aktivlik'],
+        'adiak_midterm': ['adiak_midterm', 'adiak midterm'],
+        'adiak_final': ['adiak_final', 'adiak final'],
+        'history_seminar': ['history_seminar', 'history seminar', 'tarix seminar', 'seminar'],
+        'history_interactive': ['history_interactive', 'history interactive', 'tarix interactive', 'interactive'],
+        'history_presentation': ['history_presentation', 'history presentation', 'tarix presentation', 'tarix prez'],
+        'history_midterm': ['history_midterm', 'history midterm', 'tarix midterm'],
+        'history_final': ['history_final', 'history final', 'tarix final'],
+    }
+    
+    for field, possible_names in patterns.items():
+        for idx, header in normalized_headers.items():
+            if any(pattern in header for pattern in possible_names):
+                column_map[field] = idx
+                break
+    
+    return column_map
+
+
+@app.route('/upload_csv', methods=['POST'])
+@admin_required
+def upload_csv():
+    """CSV faylı yükləyir və tələbələri əlavə edir"""
+    if 'csv_file' not in request.files:
+        flash('CSV faylı seçilməyib', 'error')
+        return redirect(url_for('index'))
+    
+    file = request.files['csv_file']
+    if file.filename == '':
+        flash('Fayl seçilməyib', 'error')
+        return redirect(url_for('index'))
+    
+    if not file.filename.endswith('.csv'):
+        flash('Yalnız CSV faylları qəbul olunur', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        # Read CSV file
+        stream = io.TextIOWrapper(file.stream, encoding='utf-8-sig')
+        csv_reader = csv.reader(stream)
+        
+        # Get headers
+        headers = next(csv_reader)
+        column_map = identify_csv_columns(headers)
+        
+        # Check required columns
+        required_fields = ['ixtisas_id', 'name', 'surname']
+        missing_fields = [f for f in required_fields if f not in column_map]
+        
+        if missing_fields:
+            flash(f'CSV-də lazımi sütunlar tapılmadı: {", ".join(missing_fields)}', 'error')
+            return redirect(url_for('index'))
+        
+        # Process rows
+        added_count = 0
+        error_count = 0
+        errors = []
+        
+        for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 because header is row 1
+            if not any(row):  # Skip empty rows
+                continue
+            
+            try:
+                # Extract basic info
+                ixtisas_id = int(row[column_map['ixtisas_id']])
+                name = row[column_map['name']].strip()
+                surname = row[column_map['surname']].strip()
+                
+                if not name or not surname:
+                    error_count += 1
+                    errors.append(f'Sətir {row_num}: Ad və ya soyad boşdur')
+                    continue
+                
+                # Helper function to safely extract float values
+                def get_float_value(field_name, default=0):
+                    if field_name not in column_map:
+                        return default
+                    col_idx = column_map[field_name]
+                    if col_idx >= len(row):
+                        return default
+                    value = row[col_idx].strip() if row[col_idx] else ''
+                    try:
+                        return float(value) if value else default
+                    except (ValueError, TypeError):
+                        return default
+                
+                # Extract English components
+                eng_assessment = get_float_value('eng_assessment')
+                eng_writing = get_float_value('eng_writing')
+                eng_p1 = get_float_value('eng_p1')
+                eng_p2 = get_float_value('eng_p2')
+                eng_p3 = get_float_value('eng_p3')
+                eng_participation = get_float_value('eng_participation')
+                eng_midterm = get_float_value('eng_midterm')
+                
+                english_point = calculate_english_from_components(
+                    eng_assessment, eng_writing, eng_p1, eng_p2, eng_p3, eng_participation, eng_midterm
+                )
+                
+                # Extract ICT components
+                ict_quiz = get_float_value('ict_quiz')
+                ict_lab = get_float_value('ict_lab')
+                ict_presentation = get_float_value('ict_presentation')
+                ict_exam = get_float_value('ict_exam')
+                
+                ict_point = calculate_ict_from_components(ict_quiz, ict_lab, ict_presentation, ict_exam)
+                
+                # Extract ADIAK or History components based on ixtisas_id
+                adiak_point = 0
+                history_point = 0
+                
+                if ixtisas_id in qrup_1_RI:
+                    adiak_presentation = get_float_value('adiak_presentation')
+                    adiak_participation = get_float_value('adiak_participation')
+                    adiak_midterm = get_float_value('adiak_midterm')
+                    adiak_final = get_float_value('adiak_final')
+                    adiak_point = calculate_adiak_from_components(
+                        adiak_presentation, adiak_participation, adiak_midterm, adiak_final
+                    )
+                elif ixtisas_id in qrup_1_RK or ixtisas_id in qrup_2:
+                    history_seminar = get_float_value('history_seminar')
+                    history_interactive = get_float_value('history_interactive')
+                    history_presentation = get_float_value('history_presentation')
+                    history_midterm = get_float_value('history_midterm')
+                    history_final = get_float_value('history_final')
+                    history_point = calculate_history_from_components(
+                        history_seminar, history_interactive, history_presentation, history_midterm, history_final
+                    )
+                
+                # Create student
+                student = Student(ixtisas_id, name, surname, english_point, adiak_point, ict_point, history_point)
+                db.session.add(student)
+                added_count += 1
+                
+            except (ValueError, IndexError, KeyError) as e:
+                error_count += 1
+                errors.append(f'Sətir {row_num}: {str(e)}')
+                continue
+        
+        db.session.commit()
+        
+        if added_count > 0:
+            flash(f'{added_count} tələbə uğurla əlavə edildi', 'success')
+        if error_count > 0:
+            flash(f'{error_count} sətirdə xəta baş verdi. İlk 5 xəta: {"; ".join(errors[:5])}', 'warning')
+        
+        return redirect(url_for('index'))
+        
+    except Exception as e:
+        flash(f'CSV faylını oxumaq mümkün olmadı: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+
+@app.route('/preview_csv', methods=['POST'])
+@admin_required
+def preview_csv():
+    """CSV faylının sütunlarını identifikasiya edir və preview göstərir"""
+    if 'csv_file' not in request.files:
+        return jsonify({'error': 'Fayl seçilməyib'}), 400
+    
+    file = request.files['csv_file']
+    if file.filename == '':
+        return jsonify({'error': 'Fayl seçilməyib'}), 400
+    
+    try:
+        stream = io.TextIOWrapper(file.stream, encoding='utf-8-sig')
+        csv_reader = csv.reader(stream)
+        headers = next(csv_reader)
+        column_map = identify_csv_columns(headers)
+        
+        # Get first few rows for preview
+        preview_rows = []
+        for i, row in enumerate(csv_reader):
+            if i >= 3:  # Show only first 3 rows
+                break
+            if any(row):
+                preview_rows.append(row)
+        
+        return jsonify({
+            'headers': headers,
+            'column_map': column_map,
+            'preview': preview_rows,
+            'mapped_fields': list(column_map.keys())
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 if __name__ == '__main__':
