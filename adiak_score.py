@@ -12,7 +12,7 @@ def calculate_adiak_grade():
     midterm_raw = float(input("Midterm imtahan nəticəsini daxil edin (0-100): "))
     midterm_contribution = midterm_raw * 0.20 
     
-    pre_exam_total = presentation * 0.15 + participation * 0.2 + midterm_contribution * 0.2
+    pre_exam_total = presentation * 0.15 + participation * 0.2 + midterm_contribution
     print(f"-> İmtahana qədər toplanan cəmi bal (Pre-exam): {pre_exam_total} / 55.00")
     
     # 2. Final imtahanı (Cəmi 45 bal)
@@ -34,6 +34,6 @@ def calculate_adiak_from_components(presentation, participation, midterm_raw, fi
     Formdan gələn komponentlərə əsasən ADIAK yekun balını hesablayır
     """
     midterm_contribution = midterm_raw * 0.20
-    pre_exam_total = presentation * 0.15 + participation * 0.2 + midterm_contribution * 0.2
+    pre_exam_total = presentation * 0.15 + participation * 0.2 + midterm_contribution
     final_contribution = final_raw * 0.45
     return pre_exam_total + final_contribution
