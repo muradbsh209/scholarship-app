@@ -368,6 +368,10 @@ def calculate():
             students_by_ixtisas[ixtisas_id] = []
         students_by_ixtisas[ixtisas_id].append(student)
     
+    # Hər ixtisas üçün tələbələri rank-a görə artan sırada sırala
+    for ixtisas_id in students_by_ixtisas:
+        students_by_ixtisas[ixtisas_id].sort(key=lambda s: s.rank if s.rank is not None else float('inf'))
+    
     # Yalnız təqaüd alan tələbələri göstər
     scholarship_students = [s for s in all_students if s.scholarship_type is not None]
     
@@ -403,6 +407,94 @@ def remove_student(student_id):
     db.session.delete(student)
     db.session.commit()
     return redirect(url_for('view_students'))
+
+
+@app.route('/edit_student/<int:student_id>', methods=['GET'])
+@admin_required
+def edit_student(student_id):
+    """Tələbə redaktə etmə səhifəsi"""
+    student = Student.query.get_or_404(student_id)
+    return render_template('edit_student.html', student=student, ixtisas_plans=IXTISAS_PLANS)
+
+
+@app.route('/update_student/<int:student_id>', methods=['POST'])
+@admin_required
+def update_student(student_id):
+    """Tələbə məlumatlarını yenilə"""
+    try:
+        student = Student.query.get_or_404(student_id)
+        
+        ixtisas_id = int(request.form.get('ixtisas_id'))
+        name = request.form.get('name')
+        surname = request.form.get('surname')
+
+        # İngilis dili komponentləri
+        eng_assessment = float(request.form.get('eng_assessment'))
+        eng_writing = float(request.form.get('eng_writing'))
+        eng_p1 = float(request.form.get('eng_p1'))
+        eng_p2 = float(request.form.get('eng_p2'))
+        eng_p3 = float(request.form.get('eng_p3'))
+        eng_participation = float(request.form.get('eng_participation'))
+        eng_midterm = float(request.form.get('eng_midterm'))
+        english_point = calculate_english_from_components(
+            eng_assessment, eng_writing, eng_p1, eng_p2, eng_p3, eng_participation, eng_midterm
+        )
+
+        # İKT komponentləri
+        ict_quiz = float(request.form.get('ict_quiz'))
+        ict_lab = float(request.form.get('ict_lab'))
+        ict_presentation = float(request.form.get('ict_presentation'))
+        ict_exam = float(request.form.get('ict_exam'))
+        ict_point = calculate_ict_from_components(ict_quiz, ict_lab, ict_presentation, ict_exam)
+
+        # İxtisas_id-yə görə 3-cü fənnin komponentləri
+        adiak_point = 0
+        history_point = 0
+
+        if ixtisas_id in qrup_1_RI:
+            adiak_presentation = float(request.form.get('adiak_presentation'))
+            adiak_participation = float(request.form.get('adiak_participation'))
+            adiak_midterm = float(request.form.get('adiak_midterm'))
+            adiak_final = float(request.form.get('adiak_final'))
+            adiak_point = calculate_adiak_from_components(
+                adiak_presentation, adiak_participation, adiak_midterm, adiak_final
+            )
+        elif ixtisas_id in qrup_1_RK or ixtisas_id in qrup_2:
+            history_seminar = float(request.form.get('history_seminar'))
+            history_interactive = float(request.form.get('history_interactive'))
+            history_presentation = float(request.form.get('history_presentation'))
+            history_midterm = float(request.form.get('history_midterm'))
+            history_final = float(request.form.get('history_final'))
+            history_point = calculate_history_from_components(
+                history_seminar,
+                history_interactive,
+                history_presentation,
+                history_midterm,
+                history_final,
+            )
+        
+        # Tələbə məlumatlarını yenilə
+        student.ixtisas_id = ixtisas_id
+        student.name = name
+        student.surname = surname
+        student.english_point = english_point
+        student.adiak_point = adiak_point
+        student.history_point = history_point
+        student.ict_point = ict_point
+        
+        # Ortalama və qiymətləri yenidən hesabla
+        student.average_score = student.calculate_average()
+        student._calculate_grades_and_status()
+        
+        # Təqaüd məlumatlarını sıfırla (yenidən hesablanmalıdır)
+        student.scholarship_type = None
+        student.rank = None
+        
+        db.session.commit()
+        
+        return redirect(url_for('view_students'))
+    except Exception as e:
+        return f"Xəta: {str(e)}", 400
 
 
 def identify_csv_columns(headers):
